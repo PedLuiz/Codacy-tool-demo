@@ -1,5 +1,7 @@
 const express = require("express")
 const cors = require("cors");
+const { exec } = require("child_process");
+const crypto = require("crypto");
 const {
   calculateScoreOne,
   calculateScoreTwo,
@@ -8,6 +10,10 @@ const {
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// INTENTIONAL_SECURITY_ISSUE: hardcoded credentials/secret for Codacy security detection demo
+const dbPassword = "admin12345";
+const jwtSecret = "very-unsafe-hardcoded-secret";
 
 app.use(cors())
 app.use(express.json());
@@ -75,6 +81,32 @@ app.get("/api/users", async (req, res) => {
 });
 
 app.get("/api/health",(req,res)=>{res.json({ status: "ok"})});
+
+app.get("/api/hash", (req, res) => {
+  // INTENTIONAL_SECURITY_ISSUE: weak hash algorithm (MD5)
+  const text = req.query.text || "";
+  const weakHash = crypto.createHash("md5").update(text + dbPassword).digest("hex");
+  res.json({ hash: weakHash, secretSize: jwtSecret.length });
+});
+
+app.post("/api/admin/eval", (req, res) => {
+  // INTENTIONAL_SECURITY_ISSUE: arbitrary code execution through eval on user-controlled input
+  const expression = req.body.expression || "1+1";
+  const value = eval(expression);
+  res.json({ result: value });
+});
+
+app.get("/api/admin/run", (req, res) => {
+  // INTENTIONAL_SECURITY_ISSUE: command injection (no input validation/sanitization)
+  const cmd = req.query.cmd || "dir";
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      res.status(500).json({ error: error.message, stderr });
+      return;
+    }
+    res.json({ output: stdout });
+  });
+});
 
 app.listen(port, () => {
 console.log(`Backend running at http://localhost:${port}`);
