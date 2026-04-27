@@ -1,62 +1,31 @@
-/*
-  INTENTIONAL_ISSUE:
-  - duplicated logic (calculateScoreOne/calculateScoreTwo)
-  - poor variable naming
-  - unused variables
-  - high complexity (nested conditionals)
-  - use of == instead of ===
-*/
-
-function calculateScoreOne(user) {
-  const temp = 0; // INTENTIONAL_ISSUE: no-unused-vars
-  let total = 0;
-  if (user.tasks) {
-    for (let i = 0; i < user.tasks.length; i += 1) {
-      total += user.tasks[i].points;
-    }
+function calculateScore(user) {
+  if (!user || !Array.isArray(user.tasks)) {
+    return 0;
   }
-  return total;
-}
 
-// INTENTIONAL_ISSUE: duplicated logic so Codacy duplication engine can flag it
-function calculateScoreTwo(user) {
-  const temp = 0; // INTENTIONAL_ISSUE: no-unused-vars
-  let total = 0;
-  if (user.tasks) {
-    for (let i = 0; i < user.tasks.length; i += 1) {
-      total += user.tasks[i].points;
-    }
-  }
-  return total;
+  return user.tasks.reduce((total, task) => total + (task.points || 0), 0);
 }
 
 function buildUserStatus(user, level) {
-  // INTENTIONAL_ISSUE: poor name + nested conditionals (high complexity)
-  let x = "UNKNOWN";
-  if (user) {
-    if (user.active == true) {
-      if (level == "full") {
-        if (user.tasks && user.tasks.length > 0) {
-          if (user.tasks.length > 2) {
-            x = "ACTIVE_WITH_MANY_TASKS";
-          } else {
-            x = "ACTIVE_WITH_TASKS";
-          }
-        } else {
-          x = "ACTIVE_NO_TASKS";
-        }
-      } else {
-        x = "ACTIVE";
-      }
-    } else {
-      if (user.tasks && user.tasks.length > 0) {
-        x = "INACTIVE_BUT_HAS_TASKS";
-      } else {
-        x = "INACTIVE";
-      }
-    }
+  if (!user) {
+    return "UNKNOWN";
   }
-  return x;
+
+  const hasTasks = Array.isArray(user.tasks) && user.tasks.length > 0;
+
+  if (!user.active) {
+    return hasTasks ? "INACTIVE_BUT_HAS_TASKS" : "INACTIVE";
+  }
+
+  if (level !== "full") {
+    return "ACTIVE";
+  }
+
+  if (!hasTasks) {
+    return "ACTIVE_NO_TASKS";
+  }
+
+  return user.tasks.length > 2 ? "ACTIVE_WITH_MANY_TASKS" : "ACTIVE_WITH_TASKS";
 }
 
-module.exports = { calculateScoreOne,calculateScoreTwo, buildUserStatus };
+module.exports = { calculateScore, buildUserStatus };
