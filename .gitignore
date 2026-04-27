@@ -1,0 +1,9 @@
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
+
+# Node/Vite/Express artifacts
+**/node_modules/
+**/dist/
+**/build/
