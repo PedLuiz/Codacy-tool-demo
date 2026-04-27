@@ -16,6 +16,7 @@ body {
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
 }
 
 .subtitle {
@@ -27,4 +28,31 @@ body {
   justify-content: space-between;
   border-bottom: 1px solid #e5e7eb;
   padding: 0.6rem 0;
+}
+
+input,
+select,
+textarea {
+  width: 55%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+}
+
+button {
+  margin-right: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #9ca3af;
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.preview-box {
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  margin-top: 0.7rem;
+  padding: 0.6rem;
+  background: #fff;
 }
