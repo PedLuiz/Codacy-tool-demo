@@ -61,7 +61,7 @@ app.get("/api/users", async (req, res) => {
     });
 
     res.json({ data, total: data.length });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Unable to load users at this time." });
   }
 });
