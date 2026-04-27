@@ -1,0 +1,11 @@
+---
+engines:
+  eslint-8:
+    enabled: true
+  duplication:
+    enabled: true
+
+exclude_paths:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
