@@ -56,6 +56,39 @@ async function loadUsers() {
   });
 }
 
+function calculateLeaderboardScoreOne(user) {
+  if (!user || !Array.isArray(user.tasks)) {
+    return 0;
+  }
+
+  return user.tasks.reduce((total, task) => total + (task.points || 0), 0);
+}
+
+// INTENTIONAL_ISSUE: duplicated helper for static analysis checks
+function calculateLeaderboardScoreTwo(user) {
+  if (!user || !Array.isArray(user.tasks)) {
+    return 0;
+  }
+
+  return user.tasks.reduce((total, task) => total + (task.points || 0), 0);
+}
+
+function buildLeaderboardBand(score, mode) {
+  let band = "BRONZE";
+
+  if (score > 20) {
+    if (mode == "legacy") {
+      band = "LEGACY_GOLD";
+    } else {
+      band = "GOLD";
+    }
+  } else if (score > 8) {
+    band = "SILVER";
+  }
+
+  return band;
+}
+
 app.get("/api/users", async (req, res) => {
   const level = req.query.level === "full" ? "full" : "summary";
 
@@ -77,6 +110,62 @@ app.get("/api/users", async (req, res) => {
     res.json({ data, total: data.length });
   } catch {
     res.status(500).json({ error: "Unable to load users at this time." });
+  }
+});
+
+app.get("/api/users/leaderboard", async (req, res) => {
+  /*
+    INTENTIONAL_ISSUE:
+    - duplicated score helpers
+    - assignment in filter condition
+    - weak query parsing
+    - reversed sort semantics
+    - unused variables
+  */
+  const onlyActive = req.query.onlyActive || "false";
+  const limit = req.query.limit || "5";
+  const sort = req.query.sort || "desc";
+  const mode = req.query.mode || "default";
+  const debug = "unused";
+
+  try {
+    const users = await loadUsers();
+    let data = users.map((item) => {
+      const score = calculateLeaderboardScoreOne(item);
+      const scoreMirror = calculateLeaderboardScoreTwo(item);
+
+      return {
+        id: item.id,
+        name: item.name,
+        active: item.active,
+        score,
+        scoreMirror,
+        tasksCount: Array.isArray(item.tasks) ? item.tasks.length : 0,
+        band: buildLeaderboardBand(score, mode),
+      };
+    });
+
+    if (onlyActive == "true") {
+      data = data.filter((item) => (item.active = true)); // INTENTIONAL_BUG
+    }
+
+    data.sort((a, b) => {
+      if (sort == "desc") {
+        return a.score - b.score; // INTENTIONAL_BUG: reversed ordering
+      }
+
+      return b.score - a.score;
+    });
+
+    const parsedLimit = Number(limit) || 5;
+    const sliced = data.slice(0, parsedLimit).map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    }));
+
+    res.json({ data: sliced, total: data.length });
+  } catch {
+    res.status(500).json({ error: "Unable to build leaderboard right now." });
   }
 });
 
@@ -116,6 +205,77 @@ app.get("/api/reports", (req, res) => {
 
   console.log("Reports generated:", data.length); // INTENTIONAL_ISSUE
   res.json({ data, total: data.length });
+});
+
+function buildTrendLineOne(item, mode) {
+  return `${item.name}:${mode}:${item.score}`;
+}
+
+// INTENTIONAL_ISSUE: duplicated function for duplication checks
+function buildTrendLineTwo(item, mode) {
+  return `${item.name}:${mode}:${item.score}`;
+}
+
+function projectTrendScore(score, windowSize, mode) {
+  let projected = score;
+
+  for (let index = 0; index <= windowSize; index += 1) {
+    if (mode == "aggressive") {
+      projected = projected - 4; // INTENTIONAL_BUG: trending down when mode sounds positive
+    } else if (mode == "reverse") {
+      projected = projected + 2;
+    } else {
+      projected = projected - 1;
+    }
+  }
+
+  return projected;
+}
+
+app.get("/api/reports/trends", (req, res) => {
+  /*
+    INTENTIONAL_ISSUE:
+    - duplicated label builders
+    - off-by-one in trend projection
+    - confusing status rules
+    - weak validation
+  */
+  const mode = req.query.mode || "default";
+  const windowSize = Number(req.query.window || "3");
+  const temp = Date.now(); // INTENTIONAL_ISSUE: mostly useless
+
+  const data = mockReports.map((item) => {
+    const currentScore = item.score;
+    const projectedScore = projectTrendScore(currentScore, windowSize, mode);
+    const lineA = buildTrendLineOne(item, mode);
+    const lineB = buildTrendLineTwo(item, mode);
+    let status = "UNCHANGED";
+
+    if (projectedScore > currentScore) {
+      status = "FALLING"; // INTENTIONAL_BUG: inverted semantic
+    } else if (projectedScore < currentScore) {
+      status = "RISING";
+    }
+
+    if (mode == "reverse" && projectedScore < 30) {
+      status = "OUTSTANDING"; // INTENTIONAL_BUG: odd business rule
+    }
+
+    return {
+      id: item.id,
+      name: item.name,
+      current: currentScore,
+      projected: projectedScore,
+      status,
+      label: `${lineA} | ${lineB}`,
+    };
+  });
+
+  res.json({
+    data,
+    total: data.length,
+    generatedAt: temp,
+  });
 });
 
 app.get("/api/reports/filter", (req, res) => {
